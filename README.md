@@ -56,8 +56,8 @@ Every exercise or example must include an activity `README.md` that follows a co
 
 | Resource                                                               | Description                                                                  |
 | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| [GUIDELINES.md](GUIDELINES.md)                                         | Maintenance model, contribution process, PR expectations, and best practices |
-| [template_github.md](template_github.md)                               | Required sections for each activity README                                   |
+| [GUIDELINES](GUIDELINES.md)                                            | Maintenance model, contribution process, PR expectations, and best practices |
+| [Contribution template](template/Contribution_template.md)             | Required sections for each activity README                                   |
 | [Nokia Network Developer Portal](https://network.developer.nokia.com/) | Official NSP developer documentation and APIs                                |
 | [LICENSE](LICENSE)                                                     | Terms under which content is made available (when present in the repository) |
 
