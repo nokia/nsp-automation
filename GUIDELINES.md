@@ -29,7 +29,7 @@ We welcome contributions from the community. All changes should be submitted via
 
 1. **Fork** the repository and create a branch from the default branch (e.g. `main`).
 2. **Create or update** content (new exercises, fixes, or improvements to existing READMEs/code).
-3. **Follow** the [README template](Activity_template.md) for every new or substantially updated activity.
+3. **Follow** the [README template](template/Contribution_template.md) for every new or substantially updated activity.
 4. **Submit** a pull request with a clear title and description of what you changed and why.
 5. **Respond** to review feedback from maintainers in a timely manner.
 6. Once approved, a maintainer will merge your PR.
@@ -56,7 +56,7 @@ We welcome contributions from the community. All changes should be submitted via
 ### Repository and Documentation Standards
 
 - **One activity per folder:** each exercise or example should live in its own directory with a README and any required artifact files.
-- **Use the README template:** every activity must include the sections defined in [Activity_template.md](Activity_template.md), including the summary table, introduction, pre-requisites, solution overview, and references.
+- **Use the README template:** every activity must include the sections defined in [here](template/Contribution_template.md), including the summary table, introduction, pre-requisites, solution overview, and references.
 - **Specify NSP version:** in the summary table, indicate the NSP release the example was created or validated for (e.g. NSP 24.8, 25.8).
 - **Use inclusive language** and avoid jargon where a short explanation helps newcomers.
 
@@ -75,7 +75,7 @@ When implementing or documenting NSP artifacts, follow the practices and pattern
 
 - **Title:** Use a short, descriptive title (e.g. “Add workflow example: wait for Kafka event with nsp.sensor”).
 - **Description:** Explain what changed, why, and how to verify (e.g. steps to run the example).
-- **Checklist:** Confirm that the activity README follows [Activity_template.md](Activity_template.md) and that no sensitive data is included.
+- **Checklist:** Confirm that the activity README follows the [template](template/Contribution_template.md) and that no sensitive data is included.
 - **Size:** Prefer smaller, reviewable PRs; split large contributions into multiple PRs if it helps.
 
 Maintainers may request changes or close PRs that do not meet these guidelines or that conflict with repository goals.
@@ -109,5 +109,5 @@ Contributions are accepted under the license specified in the repository (see [L
 ## References
 
 - [Nokia Network Developer Portal](https://network.developer.nokia.com/) — NSP resources, APIs, and developer guidance
-- [README / Activity Template](Activity_template.md) — Required structure for every activity in this repository
+- [README Template](template/Contribution_template.md) — Required structure for every activity in this repository
 - NSP product and API documentation (Nokia Documentation Portal) — for release-specific details and intent/workflow reference
