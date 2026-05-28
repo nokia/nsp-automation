@@ -45,9 +45,9 @@ Please read that document before opening an issue or pull request.
 
 Every exercise or example must include an activity `README.md` that follows a common structure (summary table, introduction, prerequisites, solution overview, references, and optional sections as needed). The canonical structure is defined in:
 
-**[Activity_template.md](Activity_template.md)**
+**[Template](template/Contribution_template.md)**
 
-> **Note:** [GUIDELINES.md](GUIDELINES.md) refers to this template as `Activity_template.md`. Make sure to rename `Activity_template.md` to `README.md` at the root of your example / exercise.
+> **Note:** [GUIDELINES.md](GUIDELINES.md) refers to this template as `Contribution_template.md`. Make sure to rename `Contribution_template.md` to `README.md` at the root of your example / exercise.
 
 ---
 
