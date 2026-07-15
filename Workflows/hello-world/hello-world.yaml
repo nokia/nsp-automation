@@ -1,0 +1,65 @@
+version: '2.0'
+
+hello-world:
+  description: Your first NSP Workflow Manager workflow — greet a user by name
+  type: direct
+
+  tags:
+    - Getting Started
+    - WFM Demo
+
+  workflow_meta:
+    author: NSP WFM Tutorial
+    version: '1.0.0'
+    license: BSD-3
+    package: OAM
+    dependencies:
+      platform:
+        nspOS: ['26.4']
+
+  input:
+    - name: World
+
+  output:
+    status: success
+    message: <% $.greeting %>
+    name: <% $.validatedName %>
+
+  output-on-error:
+    status: failed
+    reason: <% $.validationError %>
+
+  tasks:
+    validateName:
+      description: Reject empty name input before building the greeting
+      action: nsp.assert
+      input:
+        input: <% $.name.len() %>
+        expected: 0
+        shouldFail: true
+      publish:
+        validatedName: <% $.name %>
+      publish-on-error:
+        validationError: "Input 'name' must be a non-empty string."
+      on-success:
+        - buildGreeting
+      on-error:
+        - validationFailed
+
+    validationFailed:
+      join: 0
+      action: std.fail
+      input:
+        error_data: <% $.validationError %>
+
+    buildGreeting:
+      description: Build the Hello World message with nsp.python
+      action: nsp.python
+      input:
+        context: <% [$.validatedName] %>
+        script: |
+          def greet(name):
+              return "Hello, {}! Welcome to NSP Workflow Manager.".format(name)
+          return greet(context[0])
+      publish:
+        greeting: <% task().result %>
