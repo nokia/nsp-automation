@@ -291,12 +291,6 @@ You now have a working Hello World workflow that demonstrates:
 - Controlled success and error output with `output` and `output-on-error`
 - Workflow metadata (`workflow_meta`, `description`, `tags`)
 
-**Next steps:**
-
-- Try the [Ping workflow tutorial](https://github.com/nokia/nsp-workflow) for network reachability testing with `nsp.ping`.
-- Explore `nsp.https` to call NSP REST APIs from workflows.
-- Review [workflow best practices](https://network.developer.nokia.com/) before building production workflows.
-
 ---
 
 ## References
