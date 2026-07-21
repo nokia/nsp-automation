@@ -1,0 +1,47 @@
+version: '2.0'
+
+helloWorld:
+  workflow_meta:
+    title: Hello World
+    author: NSP Automation
+    version: "1.0.0"
+    deprecated: false
+
+  type: direct
+
+  description: Echoes a greeting message. Validates input before execution.
+
+  tags:
+    - Tutorial
+
+  input:
+    - message: "Hello World!"
+
+  output:
+    status: success
+    greeting: <% $.greeting_result %>
+
+  output-on-error:
+    status: failed
+    reason: <% $.validation_error %>
+
+  tasks:
+    validate_message:
+      action: nsp.assert
+      input:
+        input: <% $.message %>
+        expected: ""
+        shouldFail: false
+      on-success:
+        - greet
+      publish-on-error:
+        validation_error: "Message cannot be empty"
+
+    greet:
+      action: std.echo
+      input:
+        output: <% $.message %>
+      publish:
+        greeting_result: <% task().result %>
+      publish-on-error:
+        greeting_error: <% task().result %>
