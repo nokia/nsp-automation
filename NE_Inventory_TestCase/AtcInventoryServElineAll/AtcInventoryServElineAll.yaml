@@ -1,0 +1,89 @@
+version: '2.0'
+
+AtcInventoryServElineAll:
+  workflow_meta:
+    author: Nokia R&D
+    version: "1.0.0"
+    deprecated: false
+  type: direct
+  
+  vars:
+    # Filter of eline deployer info and show ne-id and deployer-state
+    HTTPbody1:
+      input:
+        xpath-filter: /nsp-service:services/service-layer/eline/service-extension:eline-svc/deployer-details/deployer-info
+        fields: ne-id;deployer-state
+        include-meta: false
+        offset: 0
+        limit: 10
+        depth: 5
+        sort-by: [name]
+          
+    # Filter on eline and show only important fields    
+    HTTPbody2:
+      input:
+        xpath-filter: /nsp-service:services/service-layer/eline
+        fields: name;description;ne-service-id;admin-state;oper-state
+        include-meta: false
+        offset: 0
+        #limit: 10
+        depth: 2
+        sort-by: [name]
+      
+  tags:
+   - AutomationTestCase(ATC),RESTCONF,POST,JS
+  
+  output:
+    result: <% $.html %>
+  
+  tasks:              
+    getServInfo1:
+      action: nsp.https
+      input:
+        url: https://restconf-gateway/restconf/operations/nsp-inventory:find             
+        method: POST
+        body: <% $.HTTPbody1 %>
+      on-complete:
+        - getServInfo2
+    
+    getServInfo2:
+      action: nsp.https
+      input:
+        url: https://restconf-gateway/restconf/operations/nsp-inventory:find             
+        method: POST
+        body: <% $.HTTPbody2 %>
+      publish:
+        # populate the data
+        testdata: 
+          - Create a Service inventory list using a RESTCONF API call
+          - url= <% task().result.url %>
+          - body= <% $.HTTPbody2 %>
+          - status= <% task().result.status %> 
+          - elapsed= <% task().result.elapsed %> s  
+          - <% task().result.content.get("nsp-inventory:output").data.select([$.name,$.description,$.get("ne-service-id"),$.get("admin-state"),$.get("oper-state")]) %> 
+          #log: <% task().result.content.get("nsp-inventory:output").data.select($.get("service-extension:eline-svc")) %> 
+      on-complete:
+        - displayHTMLTable
+        
+    # json data returned from API call is formatted in an HTML table using javascript
+    displayHTMLTable:   
+      action: std.js
+      input:
+        context: <% $.testdata %>
+        script: |
+          var row =$[5];
+          var header=$;
+          var report="<!DOCTYPE html><html><style>table, th, td {  border: 1px solid black; border-collapse: collapse;} </style><body>"
+          // Create header table           
+          report=report+"<table><tr><th>"+header[0]+"<tr><td>"+header[1]+"<tr><td>"+header[2]+"<tr><td>"+header[3]+"<tr><td>"+header[4]+"</tr></table><p>"
+          // Create data table          
+          report=report+"<table><tr><th>Name<th>Description<th>NE service id<th>Adm.State<th>Opr.State</tr>"   
+          for(var i  = 0; i < row.length; i++) {
+             report=report+"<tr><td>"+row[i][0]+"<td>"+row[i][1]+"<td>"+row[i][2]+"<td>"+row[i][3]+"<td>"+row[i][4]+"</td></tr>";             
+          }
+          report=report+"</table></body></html>"
+          return report;
+      publish:
+        html: <% task().result %> 
+   
+    

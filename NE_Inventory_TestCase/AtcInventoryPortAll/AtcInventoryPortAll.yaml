@@ -1,0 +1,55 @@
+version: '2.0'
+AtcInventoryPortAll:
+  workflow_meta:
+    author: Nokia R&D
+    version: "1.0.0"
+    deprecated: false
+  type: direct
+   
+  tags:
+   - AutomationTestCase(ATC),RESTCONF,GET,JS
+  output:
+    result: <% $.html %>
+  
+  tasks:              
+    # NB API call 
+    getPortInfo:
+      action: nsp.https
+      input: 
+        # The maximum default number of items returned is 300, this has been increaed in this url to the maximum of 1000 
+        url:  https://restconf-gateway/restconf/data/nsp-equipment:network/network-element/hardware-component/port?limit=1000
+        # The resultfilter filters out only the data that is needed and limits the data logged by the workflow manager
+        resultFilter: $.content["nsp-equipment:port"].select([$.get("ne-name"),$.get("ne-id"),$.get("component-id"),$.get("admin-state"),$.get("oper-state")])
+        method: GET
+      publish:
+        # The parameters needed to build the table are selected
+        testdata: 
+          - Create a Port inventory list using a RESTCONF API call
+          - url= <% task().result.url %>
+          - status= <% task().result.status %> 
+          - elapsed= <% task().result.elapsed %> s  
+          - <% task().result.content %>
+      on-complete:
+        - displayHTMLTable
+        
+    # json data returned from API call is formatted in an HTML table using javascript
+    displayHTMLTable:   
+      action: std.js
+      input:
+        context: <% $.testdata %>
+        script: |
+          var row =$[4];
+          var header=$;
+          var report="<!DOCTYPE html><html><style>table, th, td {  border: 1px solid black; border-collapse: collapse;} </style><body>"
+          // Create header table          
+          report=report+"<table><tr><th>"+header[0]+"<tr><td>"+header[1]+"<tr><td>"+header[2]+"<tr><td>"+header[3]+"</tr></table><p>"
+          // Create data table          
+          report=report+"<table><tr><th>NE Name<th>NE ID<th>Slot<th>Admin State<th>Op.State</th></tr>"     
+          for(var i  = 0; i < row.length; i++) {
+             report=report+"<tr><td>"+row[i][0]+"<td>"+row[i][1]+"<td>"+row[i][2]+"<td>"+row[i][3]+"<td>"+row[i][4]+"</td></tr>";             
+          }
+          report=report+"</table></body></html>"
+          return report;
+      publish:
+        html: <% task().result %> 
+   
