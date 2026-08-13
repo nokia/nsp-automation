@@ -189,8 +189,8 @@ You should now understand how `NeTsFileGenerator` automates tech-support collect
 
 ## References
 
-- [Workflows: best practices](https://network.developer.nokia.com/learn/26_4/artifact-development/programming/workflows/wfm-workflow-development/wfm-best-practices.html)
-- [Workflow actions reference](https://network.developer.nokia.com/learn/26_4/artifact-development/programming/workflows/wfm-workflow-development/wfm-workflow-actions.html)
+- [Workflows: best practices](https://network.developer.nokia.com/learn/26_4/artifact-development/programming/workflows/wfm-workflow-development/wfm-best-practices/)
+- [Workflow actions reference](https://network.developer.nokia.com/learn/26_4/artifact-development/programming/workflows/wfm-workflow-development/wfm-workflow-actions/)
 - [Mistral DSL v2](https://docs.openstack.org/mistral/ocata/dsl/dsl_v2.html)
 - [Nokia Network Developer Portal](https://network.developer.nokia.com/)
 - Workflow definition: [`NeTsFileGenerator.yaml`](./NeTsFileGenerator.yaml)
