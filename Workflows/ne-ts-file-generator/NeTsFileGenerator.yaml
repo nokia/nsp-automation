@@ -1,0 +1,162 @@
+version: '2.0'
+
+NeTsFileGenerator:
+  description: TS Files generation WF NSP using NE Name
+  workflow_meta:
+    author: DXS
+    version: "1.1"
+    dependencies:
+      platform:
+        nspOS: ["26.4"]
+
+  type: direct
+
+  tags:
+    - Network Assurance
+
+  input:
+  - neName:
+  - cfCard:
+
+  vars:
+    dirName: /TS/<% $.neName %>
+    TsFileDate: <% get_UTC_time("%d-%m-%Y") %>
+
+  output:
+    result: success
+
+  tasks:
+    getNeIP:
+      action: nsp.https
+      input:
+        url: "https://network-supervision/NetworkSupervision/rest/api/v1/networkElements?filter=name='<% $.neName %>'"
+        resultFilter: $.content.response.data.select({ ipAddress=>$.ipAddress, neId=>$.neId, sourceType=>$.sourceType })
+      publish:
+        mgmtIP: <% task().result.content[0].ipAddress %>
+        neId: <% task().result.content[0].neId %>
+        sourceType: <% task().result.content[0].sourceType %>
+      on-success:
+        - checkTargetDir
+      on-error:
+        - endWF
+
+    checkTargetDir:
+      action: nsp.https
+      input:
+        url: "https://file-service/nsp-file-service-app/rest/api/v1/directory/listDirectories?dirName=<% $.dirName %>&recursive=true"
+        method: GET
+        contentType: 'application/json'
+        accept: "application/json"
+      publish:
+        status: success
+        result: <% task().result %>
+      on-success:
+        - first_ts_file
+      on-error:
+        - createDir
+
+    createDir:
+      action: nsp.https
+      input:
+        url: "https://file-service/nsp-file-service-app/rest/api/v1/directory?dirName=<% $.dirName %>"
+        method: POST
+        contentType: 'application/json'
+        accept: "application/json"
+      publish:
+        result: <% task().result %>
+      publish-on-error:
+        result: <% task().result %>
+        info: <% task().result.content %>
+      on-success:
+        - first_ts_file
+
+    first_ts_file:
+      action: nsp.managed_cli
+      input:
+        neId: <% $.neId %>
+        cmds:
+          - admin tech-support <% $.cfCard %>:TS-file-<% $.neName %>-<% $.TsFileDate %>-TS1.bin
+        sessionId: "new"
+        closeSession: false
+        queryParams:
+          prompt-begin-command: /!classic-cli
+          prompt-end-command: /!md-cli
+          prompt-reset-command: /!md-cli
+        stopOn: '[\r\n]+(Error|MINOR):'
+      on-success:
+        - upload_ts_files
+      on-error:
+        - endWF
+      publish:
+        sessionId: <% task().result.sessionId %>
+        file_list: ["<% $.cfCard %>:TS-file-<% $.neName %>-<% $.TsFileDate %>-TS1.bin"]
+
+    upload_ts_files:
+      action: nsp.https_async
+      with-items: TS_files in <% $.file_list %>
+      concurrency: 1
+      input:
+        url: https://file-transfer-service/nsp-file-transfer-service-app/rest/api/v1/neservice/getFile
+        method: POST
+        contentType: application/json
+        accept: application/json
+        body: |
+          {
+          "neId": "<% $.neId %>",
+          "properties":
+            {
+              "retries": 5,
+              "destinationPath": "<% $.dirName %>",
+              "sourcePath": "<% $.TS_files %>"
+            }
+          }
+        resultFilter: $.content
+        jsonPathSuccess: '$[?(@.transferStatus == "COMPLETED" && @.transferId == "<# $.transferId #>")]'
+        jsonPathError: '$[?(@.transferStatus == "FAILED" && @.transferId == "<# $.transferId #>")]'
+        kafkaTopic: nsp-file-service
+      on-complete:
+        - deleteOnClassicNode: <% $.sourceType = "nfmp" %>
+        - deleteOnMdNode: <% $.sourceType = "mdm" %>
+      on-error:
+        - endWF
+
+    deleteOnClassicNode:
+      action: nsp.managed_cli
+      input:
+        neId: <% $.neId %>
+        cmds:
+          - file
+          - delete <% $.cfCard %>:TS-file-<% $.neName %>-<% $.TsFileDate %>-TS1.bin force
+          - exit
+        sessionId: "<% $.sessionId %>"
+        closeSession: true
+        queryParams:
+          prompt-begin-command: /!classic-cli
+          prompt-end-command: /!md-cli
+          prompt-reset-command: /!md-cli
+        stopOn: '[\r\n]+(Error|MINOR):'
+      on-error:
+        - endWF
+
+    deleteOnMdNode:
+      action: nsp.managed_cli
+      input:
+        neId: <% $.neId %>
+        cmds:
+          - file
+          - remove <% $.cfCard %>:TS-file-<% $.neName %>-<% $.TsFileDate %>-TS1.bin force
+          - exit
+        sessionId: "<% $.sessionId %>"
+        closeSession: true
+        queryParams:
+          prompt-begin-command: /!classic-cli
+          prompt-end-command: /!md-cli
+          prompt-reset-command: /!md-cli
+        stopOn: '[\r\n]+(Error|MINOR):'
+      on-error:
+        - endWF
+
+    endWF:
+      action: std.noop
+      publish:
+        output: "See the flow to determine the error."
