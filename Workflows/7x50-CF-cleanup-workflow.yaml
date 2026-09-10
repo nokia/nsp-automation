@@ -1,0 +1,197 @@
+version: '2.0'
+
+cleanupCFlash:
+  description: Deletion of old files from CF-card in the specified directory
+  type: direct
+
+  tags:
+    - DXS
+
+  workflow_meta:
+    author:  NOKIA DEMO
+    version: '1.1.0'
+    license: BSD-3
+    package: NE Operations
+    dependencies:
+      platform:
+        nspOS: ['25.8']
+
+  input:
+    - neName
+    - dir: cf3:/act
+    - deleteAge: 3600
+
+
+  vars:
+    fileList: []
+    success: False
+    dryRun: <% options().dryRun %>
+
+  output:
+    files: <% $.fileList %>
+    success: True
+
+  output-on-error:
+    files: <% $.fileList %>
+    success: False
+
+  tasks:
+    getNeIP:
+      action: nsp.https
+      input:
+        url: "https://network-supervision/NetworkSupervision/rest/api/v1/networkElements/?filter=name='<% $.neName %>'"
+        resultFilter: $.content.response.data.select({ ipAddress=>$.ipAddress, neId=>$.neId, sourceType=>$.sourceType }) 
+      publish:
+        mgmtIP: <% task().result.content[0].ipAddress %>
+        neId: <% task().result.content[0].neId %>
+        sourceType: <% task().result.content[0].sourceType %>
+      on-success:
+        - getTimeAndFilesMd: <% $.sourceType = "mdm" %>
+        - getTimeAndFilesClassic: <% $.sourceType = "nfmp" %>
+
+    getTimeAndFilesMd:
+      action: nsp.managed_cli
+      input:
+        neId: <% $.neId %>
+        cmds: 
+          - show time
+          - file list <% $.dir %>
+        sessionId: "new"
+        closeSession: false
+        queryParams:
+          prompt-begin-command: /!classic-cli
+          prompt-end-command: /!md-cli
+          prompt-reset-command: /!md-cli
+        stopOn: '[\r\n]+(Error|MINOR):'
+      publish:
+        nodeTime: <% task().result.responses[0] %>
+        readResult: <% task().result.responses[1] %>
+        sessionId: <% task().result.sessionId %>
+      on-success:
+        - parseFiles
+
+
+    getTimeAndFilesClassic:
+      action: nsp.managed_cli
+      input:
+        neId: <% $.neId %>
+        cmds: 
+          - environment no more
+          - show time
+          - file dir <% $.dir %>
+        sessionId: "new"
+        closeSession: false
+        queryParams:
+          prompt-begin-command: /!classic-cli
+          prompt-end-command: /!md-cli
+          prompt-reset-command: /!md-cli
+        stopOn: '[\r\n]+(Error|MINOR):'
+      publish:
+        nodeTime: <% task().result.responses[1] %>
+        readResult: <% task().result.responses[2] %>
+        sessionId: <% task().result.sessionId %>
+      on-success:
+        - parseFiles
+
+    parseFiles:
+      action: nsp.textFSM
+      input:
+        response: <% $.readResult %>
+        template: |
+          Value Key,Required NAME (\S+)
+          Value SIZE (\d+)
+          Value TIMEDATE (\S+\s+\S+)
+          
+          Start
+           ^Volume
+           ^Directory
+           ^${TIMEDATE}\s+${SIZE}\s+${NAME}? -> Record
+
+      publish:
+        fileList: <% task().result.data %>
+      on-success:
+        - calcAge
+
+    calcAge:
+      action: nsp.python
+      input: 
+        context: <% [$.fileList, $.deleteAge, $.dir] %>
+        script: |
+          from datetime import datetime
+
+          date_format = "%m/%d/%Y  %I:%M%p"
+          now = datetime.now()
+
+          fileList = []
+          exceptList = [ "BOF.CFG","CONFIG.CFG","NVRAM.DAT","I386-CPM.TIM","I386-IOM.TIM","i386-boot.tim", "i386-both.tim", "i386-isa-aa.tim", "i386-vxrom.bin"]
+
+          for file in context[0]:
+            if file["NAME"] not in exceptList:
+
+              t1 = datetime.strptime(file["TIMEDATE"].replace("a","AM").replace("p","PM"), date_format)
+              delta = now - t1
+              diff = delta.total_seconds()
+              file["AGE"] = round(diff)
+
+              if file["AGE"] > context[1]:
+                fileList.append(context[2] + "/" + file["NAME"])
+          return fileList;
+      publish:
+        fileList: <% task().result %>
+        cmdList: <% task().result.selectMany("file remove "+$+" force") %>
+      on-success:
+        - deleteFilesMd: <% ($.sourceType = "mdm") and $.fileList and not $.dryRun %>
+        - deleteFilesClassic: <% ($.sourceType = "nfmp") and $.fileList and not $.dryRun %>
+        - closeSession: <% $.dryRun or not $.fileList %>
+      on-error:
+        - closeSession
+
+    deleteFilesMd:
+      action: nsp.managed_cli
+      input:
+        neId: <% $.neId %>
+        cmds: <% $.cmdList %>
+        sessionId: "<% $.sessionId %>"
+        closeSession: false
+        queryParams:
+          prompt-begin-command: /!classic-cli
+          prompt-end-command: /!md-cli
+          prompt-reset-command: /!md-cli
+        stopOn: '[\r\n]+(Error|MINOR):'
+      publish:
+        cliResponse: <% task().result %>
+      on-success:
+        closeSession
+
+    deleteFilesClassic:
+      action: nsp.managed_cli
+      input:
+        neId: <% $.neId %>
+        cmds: <% $.cmdList.selectMany($.replace("remove","delete")) %>
+        sessionId: "<% $.sessionId %>"
+        closeSession: false
+        queryParams:
+          prompt-begin-command: /!classic-cli
+          prompt-end-command: /!md-cli
+          prompt-reset-command: /!md-cli
+        stopOn: '[\r\n]+(Error|MINOR):'
+      publish:
+        cliResponse: <% task().result %>
+      on-success:
+        closeSession
+
+    closeSession:
+      action: nsp.managed_cli
+      input:
+        neId: <% $.neId %>
+        cmds: 
+          - exit all
+        sessionId: "<% $.sessionId %>"
+        closeSession: true
+        queryParams:
+          prompt-begin-command: /!classic-cli
+          prompt-end-command: /!md-cli
+          prompt-reset-command: /!md-cli
+        stopOn: '[\r\n]+(Error|MINOR):'
+        
+        
