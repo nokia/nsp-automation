@@ -1,0 +1,13 @@
+{
+  "operation-type": {
+    "name": "ne-rollback",
+    "description": "Operation for Rollback NE SnapShot",
+    "category": "restore",
+    "created-by": "nsp_internal_system_user",
+    "operation-model": "ne-rollback.yang",
+    "profile": "ne-rollback.yaml",
+    "life-cycle-state": "released",
+    "additional-tag": ["SReXperts"],
+    "version": "1.0.1"
+  }
+}

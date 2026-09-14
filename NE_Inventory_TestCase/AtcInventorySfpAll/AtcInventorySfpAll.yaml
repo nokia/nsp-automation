@@ -1,0 +1,64 @@
+version: '2.0'
+AtcInventorySfpAll:
+  workflow_meta:
+    author: Nokia R&D
+    version: "1.0.0"
+    deprecated: false
+  type: direct
+   
+  tags:
+   - AutomationTestCase(ATC),RESTCONF,GET,JS
+   
+  output:
+    result: <% $.html %>
+  
+  tasks:              
+    # NB API call 
+    getSFPInfo:
+      action: nsp.https
+      input: 
+        url: https://<% locate_nsp() %>:8545/restconf/data/nsp-equipment:network/network-element/hardware-component/port/transceiver-details?limit=100
+        method: GET
+      publish:
+        # only the parameters needed to build the table are selected
+        testdata: 
+          - Create a Transceiver Inventory list with all equiped SFPs using a RESTCONF API call
+          - url= <% task().result.url %>
+          - status= <% task().result.status %> 
+          - elapsed= <% task().result.elapsed %> s  
+         # - <% task().result.content["nsp-equipment:transceiver-details"].select([$.get("connector-code"),$.get("vendor-o-u-i"),$.get("laser-wave-length"),$.get("optical-compliance"),$.get("specific-type"),$.get("number-of-lanes"),$.get("connector-type"),$.get("link-length-support"),$.get("@")]) %>  
+          # Data is odered by O-U-I    
+          - <% task().result.content["nsp-equipment:transceiver-details"].select([$.get("connector-code"),$.get("vendor-o-u-i"),$.get("laser-wave-length"),$.get("optical-compliance"),$.get("specific-type"),$.get("number-of-lanes"),$.get("connector-type"),$.get("link-length-support"),$.get("@")]).orderBy($[1]) %>     
+       
+      on-complete:
+        - displayHTMLTable
+        
+    # json data returned from API call is formatted in an HTML table using javascript
+    displayHTMLTable:   
+      action: std.js
+      input:
+        context: <% $.testdata %>
+        script: |
+          var row =$[4];
+          var header=$;
+          var report="<!DOCTYPE html><html><style>table {font-family: NokiaPure, sans-serif;border-collapse: collapse;} th, td {border: 1px solid #dddddd;text-align: left;padding: 8px;} </style><body>"
+          // Create header table          
+          report=report+"<table><tr><th>"+header[0]+"<tr><td>"+header[1]+"<tr><td>"+header[2]+"<tr><td>"+header[3]+"</tr></table><p>"
+          // Create data table          
+          report=report+"<table><tr><th>conn.<th>O-U-I<th>laser-wave-length<th>Optical Compliance<th>Specific Type<th>Lanes<th>Connector Type<th>Link Length Support<th>SFP Position</th></tr>"     
+          for(var i  = 0; i < row.length; i++) {
+             if (row[i][0] != null ){
+                // report=report+"<tr><td>"+row[i][0]+"<td>"+row[i][1]+"<td>"+row[i][2]+"<td>"+row[i][3]+"<td>"+row[i][4]+"<td>"+row[i][5]+"<td>"+row[i][6]+"<td>"+row[i][7]+"</td></tr>";             
+                report=report+"<tr><td>"+row[i][0]+"<td>"+row[i][1]+"<td>"+row[i][2]+"<td>"+row[i][3]+"<td>"+row[i][4]+"<td>"+row[i][5]+"<td>"+row[i][6]+"<td>"+row[i][7]+"</td>";             
+                // filter out the string between the brackets using regex to display the ne-id and the SFP postion 
+                let text = row[i][8]["nsp-model:identifier"];
+                let pattern = /\[(.*?)\]/g;
+                let result = text.match(pattern);               
+                report=report+"<td>"+result+"</td></tr>";                       
+             }
+          }
+          report=report+"</table></body></html>"
+          return report;
+      publish:
+        html: <% task().result %> 
+   

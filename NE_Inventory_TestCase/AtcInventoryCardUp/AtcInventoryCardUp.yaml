@@ -1,0 +1,63 @@
+version: '2.0'
+AtcInventoryCardUp:
+  workflow_meta:
+    author: Nokia R&D
+    version: "1.0.0"
+    deprecated: false
+  type: direct
+   
+  tags:
+   - AutomationTestCase(ATC),RESTCONF,POST,JS
+  output:
+    result: <% $.html %>
+     
+  vars:   
+     # Filter on cards that are operational up - limit the fields - sort by ne-id and component-id
+    HTTPbody1:
+      input:
+        xpath-filter: /nsp-equipment:network/network-element/hardware-component/card[oper-state='enabled'] 
+        fields: card;ne-name;ne-id;component-id;name;oper-state;mfg-date;part-number;serial-num;mfg-assembly-number
+        sort-by: [ne-id,component-id]
+        depth: 2
+  
+  tasks:              
+    # NB API call 
+    getCardInfo:
+      action: nsp.https
+      input: 
+        url:  https://restconf-gateway/restconf/operations/nsp-inventory:find
+        method: POST
+        body: <% $.HTTPbody1 %>
+      publish:
+        # only the parameters needed to build the table are selected
+        testdata: 
+          - Create a Card inventory list with all Cards that are operational up using a RESTCONF POST API call
+          - url= <% task().result.url %>
+          - body= <% $.HTTPbody1 %>
+          - status= <% task().result.status %> 
+          - elapsed= <% task().result.elapsed %> s  
+          - <% task().result.content["nsp-inventory:output"].data.select([$.get("ne-name"),$.get("ne-id"),$.get("component-id"),$.name,$.get("oper-state"),$.get("mfg-date"),$.get("part-number"),$.get("serial-num"),$.get("mfg-assembly-number")]) %>     
+      on-complete:
+        - displayHTMLTable
+        
+    # json data returned from API call is formatted in an HTML table using javascript
+    displayHTMLTable:   
+      action: std.js
+      input:
+        context: <% $.testdata %>
+        script: |
+          var row =$[5];
+          var header=$;
+          var report="<!DOCTYPE html><html><style>table, th, td {  border: 1px solid black; border-collapse: collapse; font-size:95% } </style><body>"
+          // Create header table          
+          report=report+"<table><tr><th>"+header[0]+"<tr><td>"+header[1]+"<tr><td>"+header[2]+"</td><tr><td>"+header[3]+"<tr><td>"+header[4]+"</tr></table><p>"
+          // Create data table          
+          report=report+"<table><tr><th>NE Name<th>NE ID<th>Slot<th>Card<th>Op.State<th>Mfg Date<th>Part Number<th>Serial Number<th>Mfg Assembly Nr</th></tr>"     
+          for(var i  = 0; i < row.length; i++) {
+             report=report+"<tr><td>"+row[i][0]+"<td>"+row[i][1]+"<td>"+row[i][2]+"<td>"+row[i][3]+"<td>"+row[i][4]+"<td>"+row[i][5]+"<td>"+row[i][6]+"<td>"+row[i][7]+"<td>"+row[i][8]+"</td></tr>";             
+          }
+          report=report+"</table></body></html>"
+          return report;
+      publish:
+        html: <% task().result %> 
+   

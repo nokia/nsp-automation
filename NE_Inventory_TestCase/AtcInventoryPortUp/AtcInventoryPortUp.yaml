@@ -1,0 +1,77 @@
+version: '2.0'
+AtcInventoryPortUp:
+  workflow_meta:
+    author: Nokia R&D
+    version: "1.0.0"
+    deprecated: false
+  type: direct
+   
+  tags:
+   - AutomationTestCase(ATC),RESTCONF,POST,JS  
+  
+  output:
+    result: <% $.html %>
+  
+  vars:
+    # Filter on ports that are operational up - limit the fields - sort by ne-id
+    HTTPbody1:
+      input:
+        xpath-filter: /nsp-equipment:network/network-element/hardware-component/port[oper-state='enabled'] 
+        fields: ne-name;ne-id;component-id;oper-state;admin-state;port-details;part-number;serial-num;mfg-date;description;name
+        include-meta: false
+        sort-by: [ne-id,component-id] 
+        depth: 2
+        limit: 1000   
+  tasks:              
+    # NB API call 
+    getPortInfo:
+      action: nsp.https
+      input: 
+        url:  https://restconf-gateway/restconf/operations/nsp-inventory:find
+        method: POST
+        body: <% $.HTTPbody1 %>
+      publish:
+        # only the parameters needed to build the table are selected
+        testdata: 
+          - Create a Port inventory list with ports that are operational Up using a RESTCONF API POST call
+          - url= <% task().result.url %>
+          - body= <% $.HTTPbody1 %>
+          - status= <% task().result.status %> 
+          - elapsed= <% task().result.elapsed %> s  
+          - <% task().result.content["nsp-inventory:output"].data %>               
+          # - <% task().result.content["nsp-inventory:output"].data.select([$.get("ne-name"),$.get("ne-id"),$.get("component-id"),$.get("admin-state"),$.get("oper-state")]) %>     
+          # - <% task().result.content["nsp-inventory:output"].data.select([$.get("port-details")]).select([$.rate,$.duplex])  %>                
+      on-complete:
+        - displayHTMLTable
+        
+    # json data returned from API call is formatted in an HTML table using javascript
+    displayHTMLTable:   
+      action: std.js
+      input:
+        context: <% $.testdata %>
+        script: |
+          var row =$[5];
+          var header=$;
+          var report="<!DOCTYPE html><html><style>table, th, td {  border: 1px solid black; border-collapse: collapse;} </style><body>"
+          // Create header table          
+          report=report+"<table><tr><th>"+header[0]+"<tr><td>"+header[1]+"<tr><td>"+header[2]+"<tr><td>"+header[3]+"<tr><td>"+header[4]+"</tr></table><p>"
+          // Create data table          
+          report=report+"<table><tr><th>NE Name<th>NE ID<th>Slot<th>Description<th>Admin State<th>Op.State<th>Part Nr<th>Serial Nr<th>Mfg.Date<th>Type<th>Mode<th>MTU<th>Rate<th>Unit</th></tr>"     
+          for(var i  = 0; i < row.length; i++) {
+             report=report+"<tr><td>";
+             report=report+row[i]["ne-name"]+"<td>"+row[i]["ne-id"]+"<td>"+row[i]["name"]+"<td>"+row[i]["description"]+"<td>"+row[i]["admin-state"]+"<td>"+row[i]["oper-state"]+"<td>";
+             report=report+row[i]["part-number"]+"<td>"+row[i]["serial-num"]+"<td>"+row[i]["mfg-date"]+"<td>";             
+             // Display port details if they exist, port deatils do not exist in case of tunnels
+             if (typeof row[i]["port-details"] !== 'undefined') {
+               report=report+row[i]["port-details"][0]["port-type"]+"<td>"+row[i]["port-details"][0]["port-mode"]+"<td>"+row[i]["port-details"][0]["mtu-value"]+"<td>"+row[i]["port-details"][0]["actual-rate"]+"<td>"+row[i]["port-details"][0]["actual-rate-units"];                              } else {
+               report=report+"<td><td><td><td>"
+             }                 
+             report=report+"</td></tr>";             
+          }
+          report=report+"</table></body></html>"
+          // Optional - Clean up the report by removing all null strings 
+          var cleanreport = report.replace(/null/g,' ');
+          return cleanreport;
+      publish:
+        html: <% task().result %> 
+   

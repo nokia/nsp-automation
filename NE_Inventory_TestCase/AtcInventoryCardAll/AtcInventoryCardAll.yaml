@@ -1,0 +1,53 @@
+version: '2.0'
+AtcInventoryCardAll:
+  workflow_meta:
+    author: Nokia R&D
+    version: "1.0.0"
+    deprecated: false
+  type: direct
+   
+  tags:
+   - AutomationTestCase(ATC),RESTCONF,GET,JS  
+   
+  output:
+    result: <% $.html %>
+  
+  tasks:              
+    # NB API call 
+    getCardInfo:
+      action: nsp.https
+      input: 
+        url: https://<% locate_nsp() %>:8545/restconf/data/nsp-equipment:network/network-element/hardware-component/card?depth=2
+        method: GET
+      publish:
+        # only the parameters needed to build the table are selected
+        testdata: 
+          - Create a Card inventory list using a RESTCONF API call
+          - url= <% task().result.url %>
+          - status= <% task().result.status %> 
+          - elapsed= <% task().result.elapsed %> s  
+          - <% task().result.content["nsp-equipment:card"].select([$.get("ne-name"),$.get("ne-id"),$.get("component-id"),$.name,$.get("oper-state"),$.get("mfg-date"),$.get("part-number"),$.get("serial-num"),$.get("mfg-assembly-number")]) %>     
+      on-complete:
+        - displayHTMLTable
+        
+    # json data returned from API call is formatted in an HTML table using javascript
+    displayHTMLTable:   
+      action: std.js
+      input:
+        context: <% $.testdata %>
+        script: |
+          var row =$[4];
+          var header=$;
+          var report="<!DOCTYPE html><html><style>table, th, td {  border: 1px solid black; border-collapse: collapse;} </style><body>"
+          // Create header table          
+          report=report+"<table><tr><th>"+header[0]+"<tr><td>"+header[1]+"<tr><td>"+header[2]+"<tr><td>"+header[3]+"</tr></table><p>"
+          // Create data table          
+          report=report+"<table><tr><th>NE Name<th>NE ID<th>Slot<th>Card<th>Op.State<th>Mfg Date<th>Part Number<th>Serial Number<th>Mfg Assembly Nr</th></tr>"     
+          for(var i  = 0; i < row.length; i++) {
+             report=report+"<tr><td>"+row[i][0]+"<td>"+row[i][1]+"<td>"+row[i][2]+"<td>"+row[i][3]+"<td>"+row[i][4]+"<td>"+row[i][5]+"<td>"+row[i][6]+"<td>"+row[i][7]+"<td>"+row[i][8]+"</td></tr>";             
+          }
+          report=report+"</table></body></html>"
+          return report;
+      publish:
+        html: <% task().result %> 
+   

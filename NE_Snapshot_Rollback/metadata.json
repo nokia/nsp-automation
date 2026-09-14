@@ -1,0 +1,100 @@
+{
+  "meta-data-header": {
+    "version": "1.0.1",
+    "buildNumber": "1",
+    "formatVersion": "1.0",
+    "createdBy": "NSP-automation",
+    "creationDate": "Tue, 07 Jul 2026 14:00:00 UTC",
+    "title": "Operation Manager Snapshot/Rollback NE Config",
+    "description": "Take device configuration snapshot and rollback for MD-SROS network elements. See README.md in the activity root for full documentation."
+  },
+  "artifact-meta-data": [
+    {
+      "name": "operation-rollback",
+      "version": "1.0.1",
+      "targetApplication": "lsom-server-app",
+      "applicationCompatibility": "23.11+",
+      "artifact-content": [
+        {
+          "fileName": "ne-rollback.yaml",
+          "path": "operation-rollback",
+          "type": "application/octet-stream"
+        },
+        {
+          "fileName": "ne-rollback.yang",
+          "path": "operation-rollback",
+          "type": "application/octet-stream"
+        },
+        {
+          "fileName": "operation_types.json",
+          "path": "operation-rollback",
+          "type": "application/octet-stream"
+        }
+      ]
+    },
+    {
+      "name": "operation-snapshot",
+      "version": "1.0.1",
+      "targetApplication": "lsom-server-app",
+      "applicationCompatibility": "23.11+",
+      "artifact-content": [
+        {
+          "fileName": "ne-snapshot.yaml",
+          "path": "operation-snapshot",
+          "type": "application/octet-stream"
+        },
+        {
+          "fileName": "ne-snapshot.yang",
+          "path": "operation-snapshot",
+          "type": "application/octet-stream"
+        },
+        {
+          "fileName": "operation_types.json",
+          "path": "operation-snapshot",
+          "type": "application/octet-stream"
+        }
+      ]
+    },
+    {
+      "name": "workflow-rollback",
+      "version": "1.0.1",
+      "targetApplication": "workflow-manager",
+      "applicationCompatibility": "23.11+",
+      "artifact-content": [
+        {
+          "fileName": "ne-rollback.yaml",
+          "path": "workflow-rollback",
+          "type": "application/octet-stream"
+        },
+        {
+          "fileName": "README.md",
+          "path": "workflow-rollback",
+          "type": "application/octet-stream"
+        }
+      ]
+    },
+    {
+      "name": "workflow-snapshot",
+      "version": "1.0.1",
+      "targetApplication": "workflow-manager",
+      "applicationCompatibility": "23.11+",
+      "artifact-content": [
+        {
+          "fileName": "ne-snapshot.yaml",
+          "path": "workflow-snapshot",
+          "type": "application/octet-stream"
+        },
+        {
+          "fileName": "ne-snapshot.json",
+          "path": "workflow-snapshot",
+          "type": "application/octet-stream"
+        },
+        {
+          "fileName": "README.md",
+          "path": "workflow-snapshot",
+          "type": "application/octet-stream"
+        }
+      ]
+    }
+  ]
+}

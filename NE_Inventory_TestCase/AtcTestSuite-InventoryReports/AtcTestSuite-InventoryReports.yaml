@@ -1,0 +1,187 @@
+version: '2.0'
+AtcTestSuite-InventoryReports:
+  workflow_meta:
+    title: NPI Test Batch
+    author: Nokia R&D
+    version: "1.0.1"
+    deprecated: false
+  type: direct
+   
+  tags:
+   - AutomationTestCase(ATC),Batch
+   
+  vars:
+    # Test list with test title meta data
+    # This list is only used to create a readable test report
+     testList:
+      - name: AtcInventoryNEAll
+        title: Create an NE inventory Table
+      - name: AtcInventoryCardAll
+        title: Create a Card Table
+      - name: AtcInventoryCardUp
+        title: Create a Card Operational State Up Table
+      - name: AtcInventoryPwrAll
+        title: Create a Power Suply Table
+      - name: AtcInventoryFanAll
+        title: Create a FAN Table   
+      - name: AtcInventorySfpAll
+        title: Create a Transceiever Table           
+      - name: AtcInventoryPortUp
+        title: Create a Port Up Table 
+      - name: AtcInventoryServElineAll
+        title: Create a table with all Eline Services 
+
+  output:
+    result: <% $.html %>
+  output-on-error:
+    result: <% $.html %>  
+    
+  tasks: 
+  
+     # Test Batch Preparation ######################################################      
+    # Wait 1 s after getting the start time to make sure that tasks do not start in the same second
+    getTime:
+      action: std.noop
+      wait-after: 2
+      publish:
+        # Get the start time of the test batch
+        testBatchStartTime: <% task().created_at %>
+      on-success:
+        -  AtcInventoryNEAll            
+    
+    #### Section with the Work Flows under Test #####################################
+    AtcInventoryNEAll:
+      workflow: AtcInventoryNEAll
+      wait-after: 1
+      on-complete:
+        - AtcInventoryCardAll
+   
+    AtcInventoryCardAll:
+      workflow: AtcInventoryCardAll
+      wait-after: 1
+      on-complete:
+        - AtcInventoryCardUp
+    
+    AtcInventoryCardUp:
+      workflow: AtcInventoryCardUp
+      wait-after: 1
+      on-complete:
+        - AtcInventoryPwrAll
+    
+    AtcInventoryPwrAll:
+      workflow: AtcInventoryPwrAll
+      wait-after: 1
+      on-complete:
+        - AtcInventoryFanAll
+    
+    AtcInventoryFanAll:
+      workflow: AtcInventoryFanAll
+      wait-after: 1
+      on-complete:
+        - AtcInventorySfpAll
+    
+    AtcInventorySfpAll:
+      workflow: AtcInventorySfpAll
+      wait-after: 1
+      on-complete:
+        - AtcInventoryPortUp
+    
+    AtcInventoryPortUp:
+      workflow: AtcInventoryPortUp
+      wait-after: 1
+      on-complete:
+        - AtcInventoryServElineAll
+    
+    AtcInventoryServElineAll:
+      workflow: AtcInventoryServElineAll
+      wait-after: 1
+      on-complete:
+        - getActExec
+    
+    ### Following tasks will create the Test Batch Report #############################################   
+    # The results of all tasks executed are retrieved via the Work Flow API
+    # The results older then the test suite start time are removed
+    # The task results are ordered by date
+    # An HTML test report is generated with the results
+    getActExec:
+      action: nsp.https     
+      input:
+        url: https://workflow-manager/wfm/api/v1/action-execution?created_at=gt:<% url_encode($.testBatchStartTime) %>      
+      publish:
+        # Filter out all action execution data with a created date after the start date of the automation suite  
+        ActExecData:  <% let(t => $.testBatchStartTime )-> task().result.content.response.data.where($.created_at >= $t) %>
+      on-complete:
+        - createAtcBatchResult     
+                 
+    createAtcBatchResult:
+      action: std.noop
+      publish:
+        # This result variable collects all the data from the executed workflows in the testsuite
+        # The result of this Test Suite itself is removed because not relevant for the test report
+        # The result is ordered by time to have the correct test sequence
+        #atcBatchResult: <% $.ActExecData.where($.workflow_name != "AtcTestSuite" ).orderBy($.created_at) %>    
+        atcBatchResult: <% $.ActExecData.where($.workflow_name.startsWith("AtcTestSuite") = false ).orderBy($.created_at) %>    
+      on-complete:
+        - createHTMLbegin
+    
+    createHTMLbegin:
+      action: std.noop
+      # Create the beginning of an HTML formatted string without the closing HTML </body></html> tags   
+      # Do not put special characters in the style info like for example the hash character #
+      publish:
+        HTMLbegin: |
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <style>
+                table {font-family: NokiaPure, sans-serif;border-collapse: collapse;width: 100%;}
+                td, th {border: 1px solid color: lightgray;text-align: left;padding: 8px;}
+                tr:hover {background-color: lightgray;}
+                lime {margin-left: 19px;height: 6px;width: 12px;background-color: lime;border-radius: 50%;display: inline-block;}
+                red {margin-left: 19px;height: 6px;width: 12px;background-color: red;border-radius: 50%;display: inline-block;}
+              </style>
+            </head>
+            <body>
+              <span style="font-size: 0.8em; font-weight: 600; margin:10px; font-family: NokiaPure, sans-serif;">NSP Automated Test Suite Report</span>
+              <hr>
+              <div style="padding-right: 10px;">
+              <table style="font-size: 0.7em;">
+                <tr><th>Test<th>Workflow Name<th>Test Title<th>Nr<th>Task<th>Action<th>Task State<th>Task Exec Time</tr>
+                {%- for ActExec in _.atcBatchResult -%}    
+                     {% set ActExecLoop = loop %}
+                     {%- if ActExecLoop.index == 1 or  _.atcBatchResult[ActExecLoop.index-2].workflow_name != _.atcBatchResult[ActExecLoop.index-1].workflow_name  -%}                        
+                          {%- for test in _.testList -%}
+                              {% set l = loop %}                 
+                              {%- if test.name == ActExec.workflow_name -%} 
+                                 <tr style="background-color: AliceBlue;"><b><td> {{l.index}}<td>{{ActExec.workflow_name}}<td>{{ test.title}}
+                              {%- endif -%}
+                          {%- endfor -%}
+                     {% else -%}   
+                            <tr><td><td><td>
+                     {%- endif -%}
+                         <td>{{ActExecLoop.index}}<td>{{ActExec.task_name}}<td><a href="/web/workflow-manager/action-executions/info?actionExecutionId={{ActExec.id}}" target="_blank">{{ActExec.name}}</a><td>{{ActExec.state}}<td>{{ActExec.created_at}}<td>                  
+                     </tr>
+                 {%- endfor -%}   
+              </table>     
+              <hr>
+              </div>
+      on-complete:
+        - createHTMLstream
+    
+    createHTMLstream:
+      # Encode the HTML page into a downloadable HTML stream
+      action: std.noop
+      publish:
+        HTMLstream: <% url_encode($.HTMLbegin) %>         
+      on-complete:
+        - displayHTMLtable     
+    
+    displayHTMLtable:    
+      # This tasks builds an Automation HTML Test Report with downloadable link   
+      action: std.noop
+      publish:
+        html: |
+          {{ _.HTMLbegin }}
+           <p>Download HTML test report:  <a href="data:application/octet-stream;charset=utf-8,{{ _.HTMLstream }}</body></html>  " download="AtcTestSuite.html" style="color:blue;">AtcTestSuite.html</a>               
+           </body></html>   
+          
