@@ -6,7 +6,7 @@ Mistral-based automation examples for Nokia NSP Workflow Manager (WFM). Each act
 | ------- | ----------- |
 | [hello-world](./hello-world/) | Minimal `std.echo` workflow for beginners. |
 | [bulk-eline](./bulk-eline/) | Bulk E-Line (epipe) provisioning via Service Management intents. |
-| [7x50-cf-cleanup](./7x50-cf-cleanup/) | SR OS compact flash cleanup (`cleanupCFlash`) for MD and Classic NEs. |
+| [CleanupCFlash](./CleanupCFlash/) | SR OS compact flash cleanup (`cleanupCFlash`) for MD and Classic NEs. |
 | [ne-ts-file-generator](./ne-ts-file-generator/) | NE timestamp file generation example. |
 | [ne-password-audit](./ne-password-audit/) | NE password audit workflow example. |
 
