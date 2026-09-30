@@ -1,0 +1,35 @@
+type: object
+properties:
+  - name: neName
+    title: NE Name
+    columnSpan: 2
+    newRow: true
+    readOnly: false
+    required: true
+    type: string
+    component:
+      input: autoComplete
+    suggest:
+      action: nspWebUI.neList
+      name:
+        - neName
+  - name: dir
+    title: DIR
+    description: Target directory
+    columnSpan: 4
+    newRow: true
+    readOnly: false
+    required: false
+    type: string
+    default: cf3:/act
+    validations:
+      patterns: []
+  - name: deleteAge
+    title: DELETE AGE
+    description: Minimum age of file in seconds
+    columnSpan: 4
+    newRow: true
+    readOnly: false
+    required: false
+    type: number
+    default: 3600
