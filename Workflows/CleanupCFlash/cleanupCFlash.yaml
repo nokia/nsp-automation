@@ -8,19 +8,18 @@ cleanupCFlash:
     - DXS
 
   workflow_meta:
-    author:  NOKIA DEMO
+    author: NOKIA DEMO
     version: '1.1.0'
     license: BSD-3
     package: NE Operations
     dependencies:
       platform:
-        nspOS: ['25.8']
+        nspOS: ['26.11']
 
   input:
     - neName
-    - dir: cf3:/act
+    - dir: cf3:
     - deleteAge: 3600
-
 
   vars:
     fileList: []
@@ -40,7 +39,7 @@ cleanupCFlash:
       action: nsp.https
       input:
         url: "https://network-supervision/NetworkSupervision/rest/api/v1/networkElements/?filter=name='<% $.neName %>'"
-        resultFilter: $.content.response.data.select({ ipAddress=>$.ipAddress, neId=>$.neId, sourceType=>$.sourceType }) 
+        resultFilter: $.content.response.data.select({ ipAddress=>$.ipAddress, neId=>$.neId, sourceType=>$.sourceType })
       publish:
         mgmtIP: <% task().result.content[0].ipAddress %>
         neId: <% task().result.content[0].neId %>
@@ -53,7 +52,7 @@ cleanupCFlash:
       action: nsp.managed_cli
       input:
         neId: <% $.neId %>
-        cmds: 
+        cmds:
           - show time
           - file list <% $.dir %>
         sessionId: "new"
@@ -70,12 +69,11 @@ cleanupCFlash:
       on-success:
         - parseFiles
 
-
     getTimeAndFilesClassic:
       action: nsp.managed_cli
       input:
         neId: <% $.neId %>
-        cmds: 
+        cmds:
           - environment no more
           - show time
           - file dir <% $.dir %>
@@ -101,12 +99,11 @@ cleanupCFlash:
           Value Key,Required NAME (\S+)
           Value SIZE (\d+)
           Value TIMEDATE (\S+\s+\S+)
-          
+
           Start
            ^Volume
            ^Directory
            ^${TIMEDATE}\s+${SIZE}\s+${NAME}? -> Record
-
       publish:
         fileList: <% task().result.data %>
       on-success:
@@ -114,7 +111,7 @@ cleanupCFlash:
 
     calcAge:
       action: nsp.python
-      input: 
+      input:
         context: <% [$.fileList, $.deleteAge, $.dir] %>
         script: |
           from datetime import datetime
@@ -184,7 +181,7 @@ cleanupCFlash:
       action: nsp.managed_cli
       input:
         neId: <% $.neId %>
-        cmds: 
+        cmds:
           - exit all
         sessionId: "<% $.sessionId %>"
         closeSession: true
@@ -193,5 +190,3 @@ cleanupCFlash:
           prompt-end-command: /!md-cli
           prompt-reset-command: /!md-cli
         stopOn: '[\r\n]+(Error|MINOR):'
-        
-        
