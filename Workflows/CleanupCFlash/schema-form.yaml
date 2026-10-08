@@ -21,7 +21,7 @@ properties:
     readOnly: false
     required: false
     type: string
-    default: cf3:/act
+    default: cf3:
     validations:
       patterns: []
   - name: deleteAge

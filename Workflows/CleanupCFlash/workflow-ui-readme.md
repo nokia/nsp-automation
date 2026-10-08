@@ -13,7 +13,7 @@ The cleanupCFlash workflow can be used to remove old files from the NE filesyste
 The cleanupCFlash workflow takes the following as input parameters:
 
 * neName — The name of the device
-* dir — The target directory to be cleaned, default *cf3:/act*
+* dir — The target directory to be cleaned, default *cf3:*
 * deleteAge — The minimum age of the file in seconds before deletion, default *3600*
 
 In addition, the workflow also supports the standard *dryRun* input attribute.

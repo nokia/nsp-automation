@@ -34,7 +34,7 @@
 
 - **NSP:** NSP 26.11 with Workflow Manager (WFM) enabled (`workflow_meta.dependencies.platform.nspOS`).
 - **Access and roles:** Developer mode enabled; Developer or Operator role to create, publish, and execute workflows.
-- **External systems:** At least one SR OS NE managed in NSP (MD and/or Classic) with a target CF path such as `cf3:/act`.
+- **External systems:** At least one SR OS NE managed in NSP (MD and/or Classic) with a target CF path such as `cf3:`.
 - **Tools or skills:** Basic YAML and JSON; NSP Workflows UI or VS Code NSP workflows plugin; optional Postman or curl for WFM REST API.
 - **Other:** Lab or non-production NE recommended. Do not hardcode credentials in workflow definitions.
 
@@ -62,7 +62,7 @@ getNeIP → (MD) getTimeAndFilesMd ─┐
 5. **deleteFilesMd** / **deleteFilesClassic** — Runs delete commands when not in `dryRun` and candidates exist.
 6. **closeSession** — Closes the managed CLI session (`closeSession: true`).
 
-
+![Published cleanupCFlash workflow overview in NSP](./images/Overview.png)
 
 ### Input
 
@@ -70,7 +70,7 @@ getNeIP → (MD) getTimeAndFilesMd ─┐
 | Parameter   | Description                                          | Default    |
 | ----------- | ---------------------------------------------------- | ---------- |
 | `neName`    | Network element name in NSP                          | (required) |
-| `dir`       | Target CF directory                                  | `cf3:/act` |
+| `dir`       | Target CF directory                                  | `cf3:` |
 | `deleteAge` | Minimum file age in seconds before deletion          | `3600`     |
 | `dryRun`    | WFM execution option; when true, no delete tasks run | `false`    |
 
@@ -80,7 +80,7 @@ getNeIP → (MD) getTimeAndFilesMd ─┐
 ```json
 {
   "neName": "s168_97_34_Both",
-  "dir": "cf3:/act",
+  "dir": "cf3:",
   "deleteAge": 3600
 }
 ```
@@ -103,6 +103,8 @@ Text marked with best-practice callouts in the Network Developer Portal applies 
 
 From the workflow **⋮** menu, choose **View info**, open the **Readme** tab, and paste the content from `[workflow-ui-readme.md](./workflow-ui-readme.md)`.
 
+The **Overview** screenshot above shows the published workflow info page with the Readme tab content visible in the NSP UI.
+
 #### Step 3 — Publish the workflow
 
 On the workflow info page, use **Modify state** to set the workflow to **Published**.
@@ -110,6 +112,8 @@ On the workflow info page, use **Modify state** to set the workflow to **Publish
 #### Step 4 — Add an Input Form (optional)
 
 In the workflow **Input Form** section, paste the YAML from `[schema-form.yaml](./schema-form.yaml)` and update the form. The `neName` field uses `nspWebUI.neList` suggest for autocomplete.
+
+![cleanupCFlash input form in the NSP UI](./images/input_form.png)
 
 #### Step 5 — Execute (dry-run first)
 
@@ -125,7 +129,7 @@ Content-Type: application/json
   "workflow_id": "cleanupCFlash",
   "input": {
     "neName": "<NE_NAME>",
-    "dir": "cf3:/act",
+    "dir": "cf3:",
     "deleteAge": 3600
   },
   "params": {
@@ -154,7 +158,13 @@ files:
 success: true
 ```
 
+After execution, review **Input/Output** on the workflow execution page. A successful run lists candidate paths (or files identified for deletion when not in dry-run) and sets `success` to true:
 
+![Successful cleanupCFlash execution input and output](./images/Successful_execution.png)
+
+On the execution **Tasks** tab, confirm each task completed (for example `getNeIP`, `getTimeAndFilesMd`, `parseFiles`, `calcAge`, `deleteFilesMd`, and `closeSession`):
+
+![cleanupCFlash executed tasks](./images/Executed_tasks.png)
 
 ### Code walkthrough
 

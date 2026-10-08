@@ -18,7 +18,7 @@ cleanupCFlash:
 
   input:
     - neName
-    - dir: cf3:/act
+    - dir: cf3:
     - deleteAge: 3600
 
   vars:
